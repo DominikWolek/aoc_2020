@@ -1,5 +1,5 @@
 import Data.Set (member, fromList)
-
+import Text.Printf
 inputPath = "input"    
 match = (2020 -)
 
@@ -15,7 +15,6 @@ second input = head [x * y * match (x + y) | x <- input, y <- input, member (mat
 
 main :: IO ()
 main = do
-    str <- readFile inputPath
-    let input = map read . lines $ str
-    putStrLn $ "Silver star: " ++ show (first input)
-    putStrLn $ "Gold star: " ++ show (second input)
+    input <- map read.lines <$> readFile inputPath
+    printf "Silver star:\t%d\n" $ first input
+    printf "Gold star:\t%d\n" $ second input
