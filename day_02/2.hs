@@ -1,36 +1,42 @@
 import Text.Printf
-import Data.List.Split
+import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec.Char
+import Data.Either
 
 type PasswdReqt = ((Int, Int), Char, String)
 
 inputPath = "input"
 
 first :: [PasswdReqt] -> Int
-first = length.filter check_reqt_1
+first = length.filter checkReqt1
 
-check_reqt_1 :: PasswdReqt -> Bool
-check_reqt_1 ((lower, upper), char, passwd) = lower <= number && number <= upper
+checkReqt1 :: PasswdReqt -> Bool
+checkReqt1 ((lower, upper), char, passwd) = lower <= number && number <= upper
     where
         number = length $ filter (==char) passwd
 
 second :: [PasswdReqt] -> Int
-second = length.filter check_reqt_2
+second = length.filter checkReqt2
 
-check_reqt_2 :: PasswdReqt -> Bool
-check_reqt_2 ((lower, upper), char, passwd) = first <+> second
+checkReqt2 :: PasswdReqt -> Bool
+checkReqt2 ((lower, upper), char, passwd) = first /= second
     where 
         first = (passwd !! (lower - 1)) == char
         second =  (passwd !! (upper - 1)) == char
-        l <+> r = (l && not r) || (not l && r)
-        
-parse :: String -> PasswdReqt
-parse line = ((read first::Int, read second::Int), head chars, passwd)
-    where
-        (first:[rest]) = splitOn "-" line
-        (second:(chars:[passwd])) = splitOn " " rest
-    
+
+parser :: GenParser Char st PasswdReqt
+parser = do
+    lower <- many digit
+    _ <- char '-'
+    upper <- many digit
+    _ <- char ' '
+    char <- letter
+    _ <- string ": "
+    passwd <- many letter
+    return ((read lower, read upper), char, passwd)
+
 main :: IO ()
 main = do
-    input <- map parse.lines <$> readFile inputPath
+    input <- rights.map (parse parser inputPath).lines <$> readFile inputPath
     printf "Silver star:\t%d\n" $ first input
-    printf "Gold star:\t%d\n" $ second input
+    printf "Gold star:  \t%d\n" $ second input
