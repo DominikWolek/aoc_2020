@@ -2,14 +2,11 @@ import Text.Printf
 
 inputPath = "input"
 
-safeTail [] = []
-safeTail (x:xs) = xs
-
 treeCounter :: Int -> Int -> [[Int]] -> Int -> Int -> Int
 treeCounter _ _ [] res _  = res
 treeCounter right down (x:xs) res i = treeCounter right down rest res' i'
     where
-        rest = iterate safeTail (x:xs) !! down
+        rest = drop down (x:xs)
         i' = mod (i + right) (length x)
         res' = res + x !! i
 
