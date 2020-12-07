@@ -16,10 +16,10 @@ parse :: String -> (Color, [(Color, Int)])
 parse line = parseBag.words.take (len - 1) $ line
     where 
         len = length line
-        parseBag (c1:(c2:("bags":("contain":("no":_))))) = ((c1,c2), [])
-        parseBag (c1:(c2:("bags":("contain":insides)))) = ((c1,c2), map getColor.splitOn ",".unwords $ insides)
+        parseBag (c1:c2:_:_:"no":_) = ((c1,c2), [])
+        parseBag (c1:c2:_:_:insides) = ((c1,c2), map getColor.splitOn ",".unwords $ insides)
         getColor = matchBag.words
-        matchBag (n:(c1:(c2:_))) = ((c1,c2), read n::Int)
+        matchBag (n:c1:c2:_) = ((c1,c2), read n::Int)
 
 getMaybeList :: Maybe [a] -> [a]
 getMaybeList Nothing = []
