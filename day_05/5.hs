@@ -7,14 +7,15 @@ first :: [Int] -> Int
 first = maximum
 
 calcID :: String -> Int
-calcID seat = calc 64 (take 7 seat) * 8 + calc 4 (drop 7 seat)
+calcID = calc 512
 
 calc :: Int -> String -> Int    
 calc _ [] = 0
-calc n (x:xs) = 
-    if x == 'B' || x == 'R' 
-        then calc (n `div` 2) xs + n 
-        else calc (n `div` 2) xs
+calc n (x:xs) = num x + calc (n `div` 2) xs 
+    where
+        num 'B' = n
+        num 'R' = n
+        num _ = 0
 
 second :: [Int] -> Int
 second seats = head.filter helper $ [1..1023]
