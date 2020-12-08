@@ -1,12 +1,14 @@
 import Text.Printf
-import Data.Text.Read
 import qualified Data.Set as S
 import Data.Either
+import Control.Monad.State
 
 inputPath = "input"
 
 type Instruction = (String, Int)
 type OpState = (Int, Int)
+type ExecReturn = (Either Int Int)
+type ExecState = (S.Set Int, OpState)
 
 fromLeft :: Either a b -> a
 fromLeft = either id (error "Right")
@@ -15,18 +17,25 @@ fromRight :: Either a b -> b
 fromRight = either (error "Left") id
 
 first :: [Instruction] -> Int
-first input = fromLeft $ exec input S.empty (0, 0)
+first input = fromLeft $ evalState (exec input) (S.empty, (0, 0))
 
-exec :: [Instruction] -> S.Set Int -> OpState -> Either Int Int
-exec instructions set (acc, ptr) =
+exec :: [Instruction] -> State ExecState ExecReturn
+exec instructions = do
+    (set, (acc, ptr)) <- get
     if ptr >= length instructions
-        then Right acc
+        then return $ Right acc
         else if S.member ptr set
-            then Left acc
-            else exec instructions newSet newState
-    where
-        newState = interpret (instructions !! ptr) (acc, ptr)
-        newSet = S.insert ptr set
+            then return $ Left acc
+            else do
+                execOne (instructions !! ptr)
+                exec instructions
+
+execOne :: Instruction -> State ExecState ()
+execOne instruction = do
+    (set, (acc, ptr)) <- get
+    let opState = interpret instruction (acc, ptr)
+    let newSet = S.insert ptr set
+    put (newSet, opState)
 
 change :: Instruction -> Instruction
 change ("acc", n) = ("acc", n)
@@ -41,7 +50,7 @@ second input n =
     where
         instruction = change (input !! n)
         newInstructions = take n input ++ (instruction: drop (n + 1) input)
-        calc = exec newInstructions S.empty (0,0)
+        calc = evalState (exec newInstructions) (S.empty, (0,0))
         continue = isLeft calc
 
 parse :: String -> Instruction
