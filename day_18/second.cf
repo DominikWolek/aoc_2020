@@ -1,0 +1,8 @@
+Input. In ::= [Stmt] ;
+SExp. Stmt ::= Exp ;
+separator Stmt "\n" ;
+
+ExpAdd.            Exp2   ::= Exp2 "+" Exp3 ;
+ExpMul.            Exp1   ::= Exp1 "*" Exp2 ;
+ExpLit.            Exp3   ::= Integer ;
+coercions Exp 3;

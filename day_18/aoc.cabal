@@ -1,0 +1,40 @@
+cabal-version: 1.12
+
+name:           aoc
+version:        1.0.0.0
+author:         Dominik Wołek
+copyright:      2020 Dominik Wołek
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/instant
+
+library
+  exposed-modules:
+    Abs
+    Lex
+    Par1
+    Par2
+
+  other-modules:
+  hs-source-dirs:
+      bnfc
+  build-depends:
+      array
+    , base >=4.7 && <5
+  default-language: Haskell2010
+
+executable 18
+  main-is: 18.hs
+  other-modules:
+  hs-source-dirs: .
+  ghc-options:
+  build-depends:
+      base >=4.7 && <5
+    , aoc
+  default-language: Haskell2010
