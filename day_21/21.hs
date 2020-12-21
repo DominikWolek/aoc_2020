@@ -4,9 +4,11 @@ import qualified Data.Set as S
 import qualified Data.Map as M
 import Data.Maybe
 import Data.List
+import Data.Function (on)
+import qualified Data.Bifunctor as BF (second)
 
 type LineSets = (S.Set String, S.Set String)
-type Assignement = M.Map String String
+type Possible = (String, S.Set String)
 type Occurences = M.Map String Int
 
 inputPath = "input"
@@ -17,50 +19,53 @@ parse line = (stuffWords, integrientsWords)
         stuffWords = splitOn " " stuff
         integrientsWords = splitOn ", " $ init integrients
 
-replace :: [LineSets] -> String -> String -> Maybe [LineSets]
-replace input a i = doReplace input []
-    where
-        doReplace [] list = Just list
-        doReplace ((ints, allers):xs) list = 
-            if (S.member a allers) && not (S.member i ints)
-                then Nothing
-                else doReplace xs ((S.delete i ints, S.delete a allers):list)
-    
-
-getAssignement :: Assignement -> [String] -> [String] -> [String] -> [LineSets] -> Int -> Maybe (Assignement)
-getAssignement dict _ _ rest _ 0 = Just dict
-getAssignement dict _ [] _ _ _  = Nothing
-getAssignement dict (a:as) (i:is) rest input n = if isNothing left then right else left
-    where
-        newDict = M.insert a i dict
-        newLineSets = replace input a i
-        left = maybe Nothing 
-                     (\inp -> getAssignement newDict (as) (is++rest) rest inp (n - 1)) 
-                     newLineSets
-        right = getAssignement dict (a:as) (is) (i:rest) input n
+parseLine (f, s) = (S.fromList f, S.fromList s)
 
 occurences :: Occurences -> LineSets -> Occurences
-occurences dict (integrients, _) = foldl (\acc key -> M.insert key (current key + 1) acc) dict integrients
+occurences dict (integrients, _) = foldl insert dict integrients
     where
         current key = fromMaybe 0 (M.lookup key dict)
+        insert accDict key = M.insert key (current key + 1) accDict
 
 first :: [String] -> [LineSets] -> Int
-first noAllergens input = sum.map (occurrsMap M.!) $ noAllergens
+first noAllergens input = sum.map (occurencesMap M.!) $ noAllergens
     where
-        occurrsMap = foldl occurences M.empty input
+        occurencesMap = foldl occurences M.empty input
 
-second :: Assignement -> String
-second = intercalate ",".M.elems
+second :: [Possible] -> String
+second possible = intercalate ",".map snd.sortBy (compare `on` fst) $  assignement
+    where
+        sets = sortBy (compare `on` S.size.snd) possible
+        assignement = getAssignemets (M.fromList possible) (head sets)
+
+getNonAlergants :: S.Set String -> [Possible] -> [String]
+getNonAlergants integrients = S.toList.foldl S.difference integrients.map snd
+
+getPossible :: [LineSets] -> [String] -> [Possible]
+getPossible input = map (\a -> (a, a `possible` input))
+    where
+        possible allergen = foldl1 S.intersection.map fst.filter (S.member allergen.snd)
+
+getAssignemets :: M.Map String (S.Set String) -> Possible -> [(String, String)]
+getAssignemets dict start = doGet [start] dict []
+    where
+        doGet [] dict result = result
+        doGet ((name, singleton):xs) dict result = doGet newStart nextDict newRes
+            where
+                val = S.findMin singleton
+                updated = M.map (S.delete val) dict
+                newStartMap = M.filter ((==1).S.size) updated
+                newStart = M.toList newStartMap ++ xs
+                nextDict = M.difference updated newStartMap
+                newRes = (name, val):result
 
 main :: IO ()
 main = do
     inpLines <- map parse.lines <$> readFile inputPath
-    let input = map (\(f, s) -> (S.fromList f, S.fromList s)) inpLines
-    let integrientsS = S.fromList.concat.map fst $ inpLines
-    let allergensS = S.fromList.concat.map snd $ inpLines
-    let integrientsL = S.toList integrientsS
-    let allergensL = S.toList allergensS
-    let assignement = fromJust $ getAssignement M.empty allergensL integrientsL [] input (S.size allergensS)
-    let noAllergens =  S.toList.S.difference integrientsS.S.fromList.M.elems $ assignement
+    let input = map parseLine inpLines
+    let allergensL = S.toList.S.fromList.concatMap snd $ inpLines
+    let possible = getPossible input allergensL
+    let integrientsS = S.fromList.concatMap fst $ inpLines
+    let noAllergens = getNonAlergants integrientsS possible
     printf "Silver star:\t%d\n" $ first noAllergens input
-    printf "Gold star:  \t%s\n" $ second assignement
+    printf "Gold star:  \t%s\n" $ second possible
